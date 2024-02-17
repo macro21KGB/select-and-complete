@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, addIcon } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, addIcon, requestUrl } from 'obsidian';
 
 // Remember to rename these classes and interfaces!
 
@@ -15,7 +15,7 @@ const DEFAULT_SETTINGS: PluginSettings = {
 }
 
 
-export default class HelloWorldPlugin extends Plugin {
+export default class SelectAndCompletePlugin extends Plugin {
 	settings: PluginSettings;
 
 	async completeText() {
@@ -43,7 +43,9 @@ export default class HelloWorldPlugin extends Plugin {
 		try {
 			new Notice('Generating text...');
 			console.log(selectedText)
-			const response = await fetch('https://api.openai.com/v1/chat/completions', {
+
+			const response = await requestUrl({
+				url: 'https://api.openai.com/v1/chat/completions',
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -55,17 +57,18 @@ export default class HelloWorldPlugin extends Plugin {
 					"messages": [
 						{
 							"role": "system",
-							"content": "You are a helpful assistant."
+							"content": "You are an helpful assistant. You are helping me writing text."
 						},
 						{
 							"role": "user",
 							"content": selectedText
 						}
-
 					]
 				})
-			});
-			const data = await response.json() as any;
+
+			})
+
+			const data = response.json;
 			const message = data.choices[0].message.content;
 
 			// add the message to end of the current line
@@ -75,6 +78,7 @@ export default class HelloWorldPlugin extends Plugin {
 			});
 		} catch (error) {
 			console.error('Error:', error);
+			new Notice('Error generating text. Check the console for more information')
 		}
 	}
 
@@ -93,9 +97,6 @@ export default class HelloWorldPlugin extends Plugin {
 			// Called when the user clicks the icon.
 			await this.completeText();
 		});
-		// Perform additional things with the ribbon
-		ribbonIconEl.addClass('my-plugin-ribbon-class');
-
 
 		this.addCommand({
 			id: 'sc_complete_text',
@@ -109,10 +110,6 @@ export default class HelloWorldPlugin extends Plugin {
 
 	}
 
-	onunload() {
-
-	}
-
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
@@ -123,9 +120,9 @@ export default class HelloWorldPlugin extends Plugin {
 }
 
 class MySettingTab extends PluginSettingTab {
-	plugin: HelloWorldPlugin;
+	plugin: SelectAndCompletePlugin;
 
-	constructor(app: App, plugin: HelloWorldPlugin) {
+	constructor(app: App, plugin: SelectAndCompletePlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
