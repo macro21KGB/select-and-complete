@@ -72,10 +72,17 @@ export default class SelectAndCompletePlugin extends Plugin {
 			const message = data.choices[0].message.content;
 
 			// add the message to end of the current line
-			editor.replaceRange("\n" + message, {
-				line: editor.getCursor().line,
-				ch: editor.getLine(editor.getCursor().line).length
-			});
+
+			if (!textSelection) {
+				editor.replaceRange("\n" + message, {
+					line: editor.getCursor().line,
+					ch: editor.getLine(editor.getCursor().line).length
+				});
+			}
+			else {
+				editor.replaceSelection(textSelection + "\n" + message);
+			}
+
 		} catch (error) {
 			console.error('Error:', error);
 			new Notice('Error generating text. Check the console for more information')
