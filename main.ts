@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, addIcon, requestUrl } from 'obsidian';
+import { App, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, addIcon, requestUrl } from 'obsidian';
 
 // Remember to rename these classes and interfaces!
 
