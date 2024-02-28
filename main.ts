@@ -106,8 +106,8 @@ export default class SelectAndCompletePlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: 'sc_complete_text',
-			name: 'Complete Text',
+			id: 'complete_text',
+			name: 'Complete selected text',
 			callback: async () => {
 				await this.completeText();
 			}
@@ -140,7 +140,7 @@ class MySettingTab extends PluginSettingTab {
 		containerEl.empty();
 
 		new Setting(containerEl)
-			.setName('OPENAI API Key')
+			.setName('OpenAI API Key')
 			.setDesc('Input your OpenAI API key here.')
 			.addText(text => text
 				.setPlaceholder('Enter your secret')
