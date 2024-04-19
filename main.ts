@@ -1,29 +1,48 @@
-import { App, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, addIcon, requestUrl } from 'obsidian';
-
-// Remember to rename these classes and interfaces!
+import { AnthropicApiResponse } from './types';
+import Anthropic from '@anthropic-ai/sdk';
+import { ChatExecutor, ChatInterface } from 'models/chat_llm';
+import { ClaudeModel } from 'models/model_claude';
+import { OpenAIModel } from 'models/model_openai';
+import { App, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, addIcon, request, requestUrl } from 'obsidian';
+import { getKeyNameBasedOnModel } from 'utils';
 
 interface PluginSettings {
 	openaiKey: string;
-	model: string;
+	antrhopicKey: string;
+	model: ModelName;
 	maxTokens: string;
 }
 
 const DEFAULT_SETTINGS: PluginSettings = {
 	openaiKey: '',
+	antrhopicKey: '',
 	model: 'gpt-3.5-turbo',
 	maxTokens: "600"
 }
 
+const modelType = {
+	"Anthropic": "anthropic",
+	"OpenAI": "openai",
+	"Mistral": "mistral"
+} as const
+export type ModelType = keyof typeof modelType;
+
+const models = {
+	'GPT-3.5 Turbo': 'gpt-3.5-turbo',
+	'GPT-4': 'gpt-4',
+	'GPT-4 Turbo': 'gpt-4-turbo',
+	'Claude 3 Haiku': 'claude-3-haiku-20240307',
+	'Claude 3 Sonnet': 'claude-3-sonnet-20240229',
+	'Claude 3 Opus': 'claude-3-opus-20240229',
+} as const;
+
+type ModelDisplayName = keyof typeof models;
+type ModelName = typeof models[ModelDisplayName];
 
 export default class SelectAndCompletePlugin extends Plugin {
 	settings: PluginSettings;
 
 	async completeText() {
-
-		if (this.settings.openaiKey === '') {
-			new Notice('You must set your OpenAI API key in the settings');
-			return;
-		}
 
 		const editor = this.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
 		if (!editor) {
@@ -32,7 +51,8 @@ export default class SelectAndCompletePlugin extends Plugin {
 		}
 
 		const textSelection = getSelection();
-		const openaiApiKey = this.settings.openaiKey;
+		const keyName = getKeyNameBasedOnModel(this.settings.model);
+		const apiKey = this.settings[keyName]
 		const selectedModel = this.settings.model;
 
 		let selectedText = editor.getLine(editor.getCursor().line);
@@ -42,36 +62,31 @@ export default class SelectAndCompletePlugin extends Plugin {
 
 		try {
 			new Notice('Generating text...');
-			console.log(selectedText)
 
-			const response = await requestUrl({
-				url: 'https://api.openai.com/v1/chat/completions',
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${openaiApiKey}`
-				},
-				body: JSON.stringify({
-					"model": selectedModel,
-					"max_tokens": +this.settings.maxTokens,
-					"messages": [
-						{
-							"role": "system",
-							"content": "You are an helpful assistant. You are helping me writing text."
-						},
-						{
-							"role": "user",
-							"content": selectedText
-						}
-					]
-				})
 
+			let message: string;
+
+			const claudeModel = new ClaudeModel({
+				modelName: selectedModel,
+				apiKey,
+				maxTokens: +this.settings.maxTokens
 			})
 
-			const data = response.json;
-			const message = data.choices[0].message.content;
+			const openaiModel = new OpenAIModel({
+				modelName: selectedModel,
+				apiKey,
+				maxTokens: +this.settings.maxTokens
+			});
 
-			// add the message to end of the current line
+			const chatExecutor = new ChatExecutor(claudeModel || openaiModel)
+
+			switch (keyName) {
+				case 'openaiKey':
+					message = await chatExecutor.generate(selectedText)
+					break;
+				case 'antrhopicKey':
+					message = await chatExecutor.generate(selectedText)
+			}
 
 			if (!textSelection) {
 				editor.replaceRange("\n" + message, {
@@ -84,7 +99,7 @@ export default class SelectAndCompletePlugin extends Plugin {
 			}
 
 		} catch (error) {
-			console.error('Error:', error);
+			console.error(error);
 			new Notice('Error generating text. Check the console for more information')
 		}
 	}
@@ -139,6 +154,8 @@ class MySettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
+		new Setting(containerEl).setName("Keys").setDesc("Add your API keys here").setHeading();
+
 		new Setting(containerEl)
 			.setName('OpenAI API Key')
 			.setDesc('Input your OpenAI API key here.')
@@ -151,20 +168,32 @@ class MySettingTab extends PluginSettingTab {
 				}))
 
 		new Setting(containerEl)
+			.setName('Anthropic API Key')
+			.setDesc('Input your Anthropic API key here.')
+			.addText(text => text
+				.setPlaceholder('Enter your secret')
+				.setValue(this.plugin.settings.antrhopicKey)
+				.onChange(async (value) => {
+					this.plugin.settings.antrhopicKey = value;
+					await this.plugin.saveSettings();
+				}))
+
+		new Setting(containerEl).setName("Model").setDesc("Choose the model you want to use").setHeading();
+
+		new Setting(containerEl)
 			.setName('Choose your model')
 			.addDropdown(dropdown => {
+				Object.keys(models).forEach((displayModelName: ModelDisplayName) => {
+					dropdown.addOption(models[displayModelName], displayModelName);
+				})
 				dropdown
-					.addOption('gpt-3.5-turbo', 'GPT-3.5 Turbo')
-					.addOption('gpt-4', 'GPT-4')
-					.addOption('gpt-4-turbo', 'GPT-4 Turbo')
 					.setValue(this.plugin.settings.model)
-					.onChange(async (value) => {
+					.onChange(async (value: ModelName) => {
 						this.plugin.settings.model = value;
 						await this.plugin.saveSettings();
 					});
 
 			});
-
 		// max token output
 		new Setting(containerEl)
 			.setName('Max tokens')

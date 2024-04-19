@@ -7,6 +7,7 @@ This plugin for Obsidian enables users to leverage OpenAI's powerful language mo
 - **Text Completion**: Select any portion of text within the Obsidian editor and generate completions using OpenAI models.
 - **Customizable Settings**: Configure the plugin to use different OpenAI models and control other parameters for a tailored experience.
 - **Seamless Integration**: Intuitively integrated into the Obsidian workflow, allowing users to enhance their writing and brainstorming processes effortlessly.
+- **GPTs and Claude models supported (NEW)**: The plugin supports both GPT-3 and Claude models for generating completions based on the selected text.
 
 ## Installation
 
@@ -26,13 +27,9 @@ This plugin for Obsidian enables users to leverage OpenAI's powerful language mo
 
 The plugin offers various configuration options to customize the completion process according to your preferences:
 
-- **OpenAI API Key**: Enter your OpenAI API key to authenticate with OpenAI's servers.
-- **Model Selection**: Choose from different OpenAI models to generate completions, each with its own strengths and capabilities.
-- **Completion Length** (WIP): Adjust the length of generated completions to suit your needs.
+- **API Key**: Enter your API key to authenticate with the LLM
+- **Model Selection**: Choose from different OpenAI and Ant models to generate completions, each with its own strengths and capabilities.
 
 ## Feedback and Support
 
 If you encounter any issues, have suggestions for improvements, or need assistance, feel free to reach out via [GitHub Issues](https://github.com/macro21KGB/select-and-complete/issues). Your feedback is valuable and helps us improve the plugin for the entire community.
-
-
-**Note:** This plugin requires a valid OpenAI API key to function. Make sure to obtain your API key from the [OpenAI website](https://openai.com/) and configure it within the plugin settings.
