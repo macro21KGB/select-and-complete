@@ -1,6 +1,4 @@
-import { AnthropicApiResponse } from './types';
-import Anthropic from '@anthropic-ai/sdk';
-import { ChatExecutor, ChatInterface } from 'models/chat_llm';
+import { ChatExecutor } from 'models/chat_llm';
 import { ClaudeModel } from 'models/model_claude';
 import { OpenAIModel } from 'models/model_openai';
 import { App, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, addIcon, request, requestUrl } from 'obsidian';
