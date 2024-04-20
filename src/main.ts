@@ -1,13 +1,17 @@
 import { ChatExecutor } from 'models/chat_llm';
 import { ClaudeModel } from 'models/model_claude';
 import { OpenAIModel } from 'models/model_openai';
-import { App, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, addIcon, request, requestUrl } from 'obsidian';
+import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, addIcon, request, requestUrl } from 'obsidian';
 import { getKeyNameBasedOnModel } from 'utils';
+import { FillerModal } from './components/FillerModal';
+import { DUMMY_FILLERS, getSelectedText } from './utils';
+import { Filler } from './interfaces/filler';
 
 interface PluginSettings {
 	openaiKey: string;
 	antrhopicKey: string;
 	model: ModelName;
+	fillers: Filler[];
 	maxTokens: string;
 }
 
@@ -15,7 +19,8 @@ const DEFAULT_SETTINGS: PluginSettings = {
 	openaiKey: '',
 	antrhopicKey: '',
 	model: 'gpt-3.5-turbo',
-	maxTokens: "600"
+	maxTokens: "600",
+	fillers: []
 }
 
 const modelType = {
@@ -43,20 +48,22 @@ export default class SelectAndCompletePlugin extends Plugin {
 	async completeText() {
 
 		const editor = this.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
+
 		if (!editor) {
 			new Notice('No active editor found');
 			return;
 		}
 
-		const textSelection = getSelection();
+		const {
+			selectedText,
+			textSelection
+		} = getSelectedText(editor);
+
+		// SETUP LLM step
 		const keyName = getKeyNameBasedOnModel(this.settings.model);
 		const apiKey = this.settings[keyName]
 		const selectedModel = this.settings.model;
 
-		let selectedText = editor.getLine(editor.getCursor().line);
-
-		if (textSelection !== null && textSelection.toString() !== '')
-			selectedText = textSelection.toString();
 
 		try {
 			new Notice('Generating text...');
@@ -126,8 +133,30 @@ export default class SelectAndCompletePlugin extends Plugin {
 			}
 		});
 
-		this.addSettingTab(new MySettingTab(this.app, this));
+		this.addRibbonIcon('complete_ai', 'Text', async (evt: MouseEvent) => {
 
+			const editor = this.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
+
+			if (!editor) {
+				new Notice('No active editor found');
+				return;
+			}
+
+			const {
+				selectedText
+			} = getSelectedText(editor!);
+
+			new FillerModal([
+				{
+					name: 'Filler 1',
+					content: 'This is the content of filler 1: {{PROMPT}}',
+				}
+			], selectedText).open();
+
+		});
+
+
+		this.addSettingTab(new MySettingTab(this.app, this));
 	}
 
 	async loadSettings() {
@@ -144,6 +173,7 @@ class MySettingTab extends PluginSettingTab {
 
 	constructor(app: App, plugin: SelectAndCompletePlugin) {
 		super(app, plugin);
+
 		this.plugin = plugin;
 	}
 
@@ -208,5 +238,51 @@ class MySettingTab extends PluginSettingTab {
 					this.plugin.settings.maxTokens = value;
 					await this.plugin.saveSettings();
 				}));
+
+		// FILLERS
+		new Setting(containerEl).setName("Fillers").setDesc("Custom templates for all your needs").setHeading();
+
+		const newFillerSetting = new Setting(containerEl)
+			.setName('Add Filler')
+			.setDesc('Add a new filler, use {{PROMPT}} to indicate where the prompt should be inserted')
+			.addTextArea(text => { })
+			.addButton(button => button
+				.setButtonText('Add')
+				.onClick(() => {
+					const textArea = newFillerSetting.settingEl.querySelector('textarea');
+					const fillerText = textArea?.value;
+
+					if (!fillerText) {
+						new Notice('Filler text cannot be empty');
+						return;
+					}
+
+					this.plugin.settings.fillers.push({
+						name: `Filler ${this.plugin.settings.fillers.length + 1}`,
+						content: fillerText
+					});
+
+					this.plugin.saveSettings();
+					this.display();
+				}));
+
+		// list all fillers
+		const listEl = containerEl.createEl("ul");
+		listEl.style.listStyle = "none";
+		listEl.style.padding = "0";
+		listEl.style.margin = "0";
+
+		this.plugin.settings.fillers
+			.forEach((filler: Filler) => {
+				const li = listEl.createEl("li");
+
+				// List item styling
+				li.style.boxShadow = "0 0 5px rgba(0, 0, 0, 0.1)";
+				li.style.padding = "10px";
+				li.style.borderRadius = "0.5rem";
+				li.style.marginBottom = "10px";
+				li.createEl("div", { text: filler.name });
+				li.createEl("small", { text: filler.content });
+			});
 	}
 }
