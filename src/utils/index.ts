@@ -20,3 +20,20 @@ export const DUMMY_FILLERS: Filler[] = [
 	},
 
 ]
+
+export const MODELS = {
+	'GPT-3.5 Turbo': 'gpt-3.5-turbo',
+	'GPT-4': 'gpt-4',
+	'GPT-4 Turbo': 'gpt-4-turbo',
+	'Claude 3 Haiku': 'claude-3-haiku-20240307',
+	'Claude 3 Sonnet': 'claude-3-sonnet-20240229',
+	'Claude 3 Opus': 'claude-3-opus-20240229',
+} as const;
+
+
+const modelType = {
+	"Anthropic": "anthropic",
+	"OpenAI": "openai",
+	"Mistral": "mistral"
+} as const
+export type ModelType = keyof typeof modelType;

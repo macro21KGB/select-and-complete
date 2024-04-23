@@ -4,8 +4,9 @@ import { OpenAIModel } from 'models/model_openai';
 import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, addIcon, request, requestUrl } from 'obsidian';
 import { getKeyNameBasedOnModel } from 'utils';
 import { FillerModal } from './components/FillerModal';
-import { DUMMY_FILLERS, getSelectedText } from './utils';
+import { DUMMY_FILLERS, MODELS, getSelectedText } from './utils';
 import { Filler } from './interfaces/filler';
+import { MySettingTab } from './components/SettingsTab';
 
 interface PluginSettings {
 	openaiKey: string;
@@ -23,29 +24,15 @@ const DEFAULT_SETTINGS: PluginSettings = {
 	fillers: []
 }
 
-const modelType = {
-	"Anthropic": "anthropic",
-	"OpenAI": "openai",
-	"Mistral": "mistral"
-} as const
-export type ModelType = keyof typeof modelType;
-
-const models = {
-	'GPT-3.5 Turbo': 'gpt-3.5-turbo',
-	'GPT-4': 'gpt-4',
-	'GPT-4 Turbo': 'gpt-4-turbo',
-	'Claude 3 Haiku': 'claude-3-haiku-20240307',
-	'Claude 3 Sonnet': 'claude-3-sonnet-20240229',
-	'Claude 3 Opus': 'claude-3-opus-20240229',
-} as const;
-
-type ModelDisplayName = keyof typeof models;
-type ModelName = typeof models[ModelDisplayName];
+type ModelDisplayName = keyof typeof MODELS;
+type ModelName = typeof MODELS[ModelDisplayName];
 
 export default class SelectAndCompletePlugin extends Plugin {
 	settings: PluginSettings;
+	chatExecutor: ChatExecutor;
 
-	async completeText() {
+
+	async completeText(possiblePrefetchedText?: string) {
 
 		const editor = this.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
 
@@ -59,39 +46,12 @@ export default class SelectAndCompletePlugin extends Plugin {
 			textSelection
 		} = getSelectedText(editor);
 
-		// SETUP LLM step
-		const keyName = getKeyNameBasedOnModel(this.settings.model);
-		const apiKey = this.settings[keyName]
-		const selectedModel = this.settings.model;
-
 
 		try {
 			new Notice('Generating text...');
 
 
-			let message: string;
-
-			const claudeModel = new ClaudeModel({
-				modelName: selectedModel,
-				apiKey,
-				maxTokens: +this.settings.maxTokens
-			})
-
-			const openaiModel = new OpenAIModel({
-				modelName: selectedModel,
-				apiKey,
-				maxTokens: +this.settings.maxTokens
-			});
-
-			const chatExecutor = new ChatExecutor(claudeModel || openaiModel)
-
-			switch (keyName) {
-				case 'openaiKey':
-					message = await chatExecutor.generate(selectedText)
-					break;
-				case 'antrhopicKey':
-					message = await chatExecutor.generate(selectedText)
-			}
+			const message = await this.chatExecutor.generate(possiblePrefetchedText || selectedText)
 
 			if (!textSelection) {
 				editor.replaceRange("\n" + message, {
@@ -109,8 +69,55 @@ export default class SelectAndCompletePlugin extends Plugin {
 		}
 	}
 
+	setupLLM() {
+		const keyName = getKeyNameBasedOnModel(this.settings.model);
+		const apiKey = this.settings[keyName]
+		const selectedModel = this.settings.model;
+
+		const claudeModel = new ClaudeModel({
+			modelName: selectedModel,
+			apiKey,
+			maxTokens: +this.settings.maxTokens
+		})
+
+		const openaiModel = new OpenAIModel({
+			modelName: selectedModel,
+			apiKey,
+			maxTokens: +this.settings.maxTokens
+		});
+
+
+		switch (keyName) {
+			case 'openaiKey':
+				this.chatExecutor = new ChatExecutor(openaiModel);
+				break;
+			case 'antrhopicKey':
+				this.chatExecutor = new ChatExecutor(claudeModel);
+		}
+	}
+
+	openFillerModal() {
+
+		const editor = this.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
+
+		if (!editor) {
+			new Notice('No active editor found');
+			return;
+		}
+
+		const {
+			selectedText
+		} = getSelectedText(editor!);
+
+		new FillerModal(this.settings.fillers, selectedText, async (item) => {
+			await this.completeText(item.content.replace("{{PROMPT}}", selectedText));
+		}).open();
+	}
+
 	async onload() {
 		await this.loadSettings();
+
+		this.setupLLM();
 
 		addIcon('complete_ai', `
 			<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
@@ -119,8 +126,8 @@ export default class SelectAndCompletePlugin extends Plugin {
 		`)
 
 
-		// This creates an icon in the left ribbon.
-		const ribbonIconEl = this.addRibbonIcon('complete_ai', 'Select and Complete', async (evt: MouseEvent) => {
+		// Complete text
+		this.addRibbonIcon('complete_ai', 'Select and Complete', async (evt: MouseEvent) => {
 			// Called when the user clicks the icon.
 			await this.completeText();
 		});
@@ -133,28 +140,13 @@ export default class SelectAndCompletePlugin extends Plugin {
 			}
 		});
 
-		this.addRibbonIcon('complete_ai', 'Text', async (evt: MouseEvent) => {
-
-			const editor = this.app.workspace.getActiveViewOfType(MarkdownView)?.editor;
-
-			if (!editor) {
-				new Notice('No active editor found');
-				return;
+		this.addCommand({
+			id: "complete_text_with_filler",
+			name: "Complete selected text with custom prompt (fillers)",
+			callback: async () => {
+				this.openFillerModal();
 			}
-
-			const {
-				selectedText
-			} = getSelectedText(editor!);
-
-			new FillerModal([
-				{
-					name: 'Filler 1',
-					content: 'This is the content of filler 1: {{PROMPT}}',
-				}
-			], selectedText).open();
-
-		});
-
+		})
 
 		this.addSettingTab(new MySettingTab(this.app, this));
 	}
@@ -165,124 +157,5 @@ export default class SelectAndCompletePlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-	}
-}
-
-class MySettingTab extends PluginSettingTab {
-	plugin: SelectAndCompletePlugin;
-
-	constructor(app: App, plugin: SelectAndCompletePlugin) {
-		super(app, plugin);
-
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const { containerEl } = this;
-
-		containerEl.empty();
-
-		new Setting(containerEl).setName("Keys").setDesc("Add your API keys here").setHeading();
-
-		new Setting(containerEl)
-			.setName('OpenAI API Key')
-			.setDesc('Input your OpenAI API key here.')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.openaiKey)
-				.onChange(async (value) => {
-					this.plugin.settings.openaiKey = value;
-					await this.plugin.saveSettings();
-				}))
-
-		new Setting(containerEl)
-			.setName('Anthropic API Key')
-			.setDesc('Input your Anthropic API key here.')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.antrhopicKey)
-				.onChange(async (value) => {
-					this.plugin.settings.antrhopicKey = value;
-					await this.plugin.saveSettings();
-				}))
-
-		new Setting(containerEl).setName("Model").setDesc("Choose the model you want to use").setHeading();
-
-		new Setting(containerEl)
-			.setName('Choose your model')
-			.addDropdown(dropdown => {
-				Object.keys(models).forEach((displayModelName: ModelDisplayName) => {
-					dropdown.addOption(models[displayModelName], displayModelName);
-				})
-				dropdown
-					.setValue(this.plugin.settings.model)
-					.onChange(async (value: ModelName) => {
-						this.plugin.settings.model = value;
-						await this.plugin.saveSettings();
-					});
-
-			});
-		// max token output
-		new Setting(containerEl)
-			.setName('Max tokens')
-			.setDesc('The maximum number of tokens (words) to generate')
-			.addText(text => text
-				.setPlaceholder('600 (default)')
-				.setValue(this.plugin.settings.maxTokens)
-				.onChange(async (value) => {
-
-					if (isNaN(+value)) {
-						new Notice('Max tokens must be a number');
-						return;
-					}
-					this.plugin.settings.maxTokens = value;
-					await this.plugin.saveSettings();
-				}));
-
-		// FILLERS
-		new Setting(containerEl).setName("Fillers").setDesc("Custom templates for all your needs").setHeading();
-
-		const newFillerSetting = new Setting(containerEl)
-			.setName('Add Filler')
-			.setDesc('Add a new filler, use {{PROMPT}} to indicate where the prompt should be inserted')
-			.addTextArea(text => { })
-			.addButton(button => button
-				.setButtonText('Add')
-				.onClick(() => {
-					const textArea = newFillerSetting.settingEl.querySelector('textarea');
-					const fillerText = textArea?.value;
-
-					if (!fillerText) {
-						new Notice('Filler text cannot be empty');
-						return;
-					}
-
-					this.plugin.settings.fillers.push({
-						name: `Filler ${this.plugin.settings.fillers.length + 1}`,
-						content: fillerText
-					});
-
-					this.plugin.saveSettings();
-					this.display();
-				}));
-
-		// list all fillers
-		const listEl = containerEl.createEl("ul");
-		listEl.style.listStyle = "none";
-		listEl.style.padding = "0";
-		listEl.style.margin = "0";
-
-		this.plugin.settings.fillers
-			.forEach((filler: Filler) => {
-				const li = listEl.createEl("li");
-
-				// List item styling
-				li.style.boxShadow = "0 0 5px rgba(0, 0, 0, 0.1)";
-				li.style.padding = "10px";
-				li.style.borderRadius = "0.5rem";
-				li.style.marginBottom = "10px";
-				li.createEl("div", { text: filler.name });
-				li.createEl("small", { text: filler.content });
-			});
 	}
 }

@@ -8,6 +8,8 @@ This plugin for Obsidian enables users to leverage OpenAI's powerful language mo
 - **Customizable Settings**: Configure the plugin to use different OpenAI models and control other parameters for a tailored experience.
 - **Seamless Integration**: Intuitively integrated into the Obsidian workflow, allowing users to enhance their writing and brainstorming processes effortlessly.
 - **GPTs and Claude models supported (NEW)**: The plugin supports both GPT-3 and Claude models for generating completions based on the selected text.
+- **Quick custom prompts aks "Fillers (NEW)"**: The plugin allows users to quickly generate completions based on custom prompts, also known as "fillers."
+
 
 ## Installation
 

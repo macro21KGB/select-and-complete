@@ -5,12 +5,14 @@ export class FillerModal extends SuggestModal<Filler> {
 
 	prompt: string
 	fillers: Filler[]
+	callback: (filler: Filler) => void
 
-	constructor(fillers: Filler[], prompt = "") {
+	constructor(fillers: Filler[], prompt = "", callback: (filler: Filler) => void) {
 		super(app)
 
 		this.prompt = prompt
 		this.fillers = fillers
+		this.callback = callback
 	}
 
 	getSuggestions(query: string): Filler[] | Promise<Filler[]> {
@@ -26,6 +28,6 @@ export class FillerModal extends SuggestModal<Filler> {
 	}
 
 	onChooseSuggestion(item: Filler, evt: MouseEvent | KeyboardEvent) {
-		new Notice(`Chose ${item.name}`)
+		this.callback(item)
 	}
 }
