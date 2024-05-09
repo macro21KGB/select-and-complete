@@ -1,7 +1,8 @@
-import { PluginSettingTab, App, Setting, Notice } from "obsidian";
+import { PluginSettingTab, App, Setting, Notice, Modal } from "obsidian";
 import { Filler } from "src/interfaces/filler";
 import SelectAndCompletePlugin from "src/main";
 import { MODELS } from "src/utils";
+import { FillerModal } from "./FillerModal";
 
 type ModelDisplayName = keyof typeof MODELS;
 type ModelName = typeof MODELS[ModelDisplayName];
@@ -119,9 +120,56 @@ export class MySettingTab extends PluginSettingTab {
 				li.style.boxShadow = "0 0 5px rgba(0, 0, 0, 0.1)";
 				li.style.padding = "10px";
 				li.style.borderRadius = "0.5rem";
+				li.style.display = "flex";
+				li.style.justifyContent = "space-between";
+				li.style.alignItems = "center";
+				li.style.flexDirection = "row";
 				li.style.marginBottom = "10px";
-				li.createEl("div", { text: filler.name });
-				li.createEl("small", { text: filler.content });
+
+				const container = li.createDiv();
+				container.createEl("div", { text: filler.name });
+				container.createEl("small", { text: filler.content });
+
+				const buttons = li.createDiv();
+				buttons.style.display = "flex";
+				buttons.style.gap = "0.5rem";
+				buttons.createEl("button", { text: "Edit" }).addEventListener("click", () => {
+					const modifyModal = new Modal(this.app)
+
+					const { contentEl } = modifyModal;
+
+
+					new Setting(contentEl)
+						.setName('Filler name')
+						.setClass('pt-2')
+						.addText(text => text
+							.setValue(filler.name)
+							.onChange(async (value) => {
+								filler.name = value;
+								this.display();
+							}));
+
+					new Setting(contentEl)
+						.setName('Filler content')
+						.addTextArea(text => text
+							.setValue(filler.content)
+							.onChange(async (value) => {
+								filler.content = value;
+								this.display();
+							})
+						);
+
+
+					modifyModal.open();
+
+
+				});
+				buttons.createEl("button", { text: "Delete" }).addEventListener("click", () => {
+					const index = this.plugin.settings.fillers.findIndex((f: Filler) => f.name === filler.name);
+					this.plugin.settings.fillers.splice(index, 1);
+					this.plugin.saveSettings();
+					this.display();
+				});
 			});
 	}
 }
