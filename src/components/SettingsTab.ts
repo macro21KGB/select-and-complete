@@ -146,6 +146,7 @@ export class MySettingTab extends PluginSettingTab {
 							.setValue(filler.name)
 							.onChange(async (value) => {
 								filler.name = value;
+								this.plugin.saveSettings();
 								this.display();
 							}));
 
@@ -155,6 +156,7 @@ export class MySettingTab extends PluginSettingTab {
 							.setValue(filler.content)
 							.onChange(async (value) => {
 								filler.content = value;
+								this.plugin.saveSettings();
 								this.display();
 							})
 						);

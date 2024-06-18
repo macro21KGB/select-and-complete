@@ -1,7 +1,7 @@
 {
 	"id": "select-and-complete",
 	"name": "Select & Complete",
-	"version": "2.3.6",
+	"version": "2.3.7",
 	"minAppVersion": "0.15.0",
 	"description": "Select something and let the AI complete it for you.",
 	"author": "Mario De Luca",
