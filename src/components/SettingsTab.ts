@@ -2,14 +2,14 @@ import { PluginSettingTab, App, Setting, Notice, Modal } from "obsidian";
 import { Filler } from "src/interfaces/filler";
 import SelectAndCompletePlugin from "src/main";
 import { MODELS } from "src/utils";
-import { FillerModal } from "./FillerModal";
 
 type ModelDisplayName = keyof typeof MODELS;
-type ModelName = typeof MODELS[ModelDisplayName];
+type ModelName = typeof MODELS[ModelDisplayName] & "";
 
 
 export class MySettingTab extends PluginSettingTab {
 	plugin: SelectAndCompletePlugin;
+	customModelInputText: Setting
 
 	constructor(app: App, plugin: SelectAndCompletePlugin) {
 		super(app, plugin);
@@ -59,9 +59,29 @@ export class MySettingTab extends PluginSettingTab {
 					.onChange(async (value: ModelName) => {
 						this.plugin.settings.model = value;
 						await this.plugin.saveSettings();
+						this.display()
 					});
 
 			});
+
+		// Choose model, custom name
+		this.customModelInputText = new Setting(containerEl)
+			.setName('Custom Model Name')
+			.setDesc('Type the name of a model from openai/antrhopic (by default is the same as the dropdown)')
+			.addText(text => text
+				.setPlaceholder('Type here your custom model')
+				.setValue(this.plugin.settings.model)
+				.onChange(async (value: ModelName) => {
+
+					// if the custom input is empty change it to openai default model
+					if (value == "")
+						this.plugin.settings.model = MODELS['GPT-4o']
+					this.plugin.settings.model = value;
+					await this.plugin.saveSettings();
+				}))
+
+
+
 		// max token output
 		new Setting(containerEl)
 			.setName('Max tokens')

@@ -1,10 +1,9 @@
 import { ChatExecutor } from 'models/chat_llm';
 import { ClaudeModel } from 'models/model_claude';
 import { OpenAIModel } from 'models/model_openai';
-import { App, Editor, MarkdownView, Notice, Plugin, PluginSettingTab, Setting, addIcon, request, requestUrl } from 'obsidian';
-import { getKeyNameBasedOnModel } from 'utils';
+import { MarkdownView, Notice, Plugin, addIcon } from 'obsidian';
 import { FillerModal } from './components/FillerModal';
-import { DUMMY_FILLERS, MODELS, getSelectedText } from './utils';
+import { MODELS, getSelectedText, getKeyNameBasedOnModel } from './utils';
 import { Filler } from './interfaces/filler';
 import { MySettingTab } from './components/SettingsTab';
 
@@ -25,7 +24,7 @@ const DEFAULT_SETTINGS: PluginSettings = {
 }
 
 type ModelDisplayName = keyof typeof MODELS;
-type ModelName = typeof MODELS[ModelDisplayName];
+type ModelName = typeof MODELS[ModelDisplayName] & string;
 
 export default class SelectAndCompletePlugin extends Plugin {
 	settings: PluginSettings;
@@ -48,7 +47,7 @@ export default class SelectAndCompletePlugin extends Plugin {
 
 
 		try {
-			new Notice('Generating text...');
+			new Notice('Generating text with ' + this.settings.model);
 
 
 			const message = await this.chatExecutor.generate(possiblePrefetchedText || selectedText)
@@ -157,5 +156,7 @@ export default class SelectAndCompletePlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+		console.log("LLM")
+		this.setupLLM()
 	}
 }
