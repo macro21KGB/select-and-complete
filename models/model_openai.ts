@@ -28,7 +28,7 @@ export class OpenAIModel extends ChatInterface {
 			return error;
 		});
 
-		return message.choices[0].message.content
+		return message.json.choices[0].message.content
 	}
 
 }
