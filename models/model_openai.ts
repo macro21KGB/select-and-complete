@@ -12,7 +12,7 @@ export class OpenAIModel extends ChatInterface {
 			},
 			body: JSON.stringify({
 				model: this.modelName,
-				max_tokens: +this.maxTokens,
+				max_completion_tokens: +this.maxTokens,
 				temperature: 0.5,
 				messages: [
 					{
@@ -28,7 +28,7 @@ export class OpenAIModel extends ChatInterface {
 			return error;
 		});
 
-		return message.json.content[0].text
+		return message.choices[0].message.content
 	}
 
 }
