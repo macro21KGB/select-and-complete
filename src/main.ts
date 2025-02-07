@@ -1,6 +1,7 @@
 import { ChatExecutor } from 'models/chat_llm';
 import { ClaudeModel } from 'models/model_claude';
 import { OpenAIModel } from 'models/model_openai';
+import { OpenRouterModel } from 'models/model_openrouter';
 import { MarkdownView, Notice, Plugin, addIcon } from 'obsidian';
 import { FillerModal } from './components/FillerModal';
 import { MODELS, getSelectedText, getKeyNameBasedOnModel } from './utils';
@@ -10,6 +11,7 @@ import { MySettingTab } from './components/SettingsTab';
 interface PluginSettings {
 	openaiKey: string;
 	antrhopicKey: string;
+	openRouterKey: string;
 	model: ModelName;
 	fillers: Filler[];
 	maxTokens: string;
@@ -18,8 +20,9 @@ interface PluginSettings {
 const DEFAULT_SETTINGS: PluginSettings = {
 	openaiKey: '',
 	antrhopicKey: '',
+	openRouterKey: '',
 	model: 'gpt-3.5-turbo',
-	maxTokens: "600",
+	maxTokens: "2000",
 	fillers: []
 }
 
@@ -73,25 +76,37 @@ export default class SelectAndCompletePlugin extends Plugin {
 		const apiKey = this.settings[keyName]
 		const selectedModel = this.settings.model;
 
-		const claudeModel = new ClaudeModel({
-			modelName: selectedModel,
-			apiKey,
-			maxTokens: +this.settings.maxTokens
-		})
-
-		const openaiModel = new OpenAIModel({
-			modelName: selectedModel,
-			apiKey,
-			maxTokens: +this.settings.maxTokens
-		});
-
-
 		switch (keyName) {
-			case 'openaiKey':
+			case 'openaiKey': {
+
+				const openaiModel = new OpenAIModel({
+					modelName: selectedModel,
+					apiKey,
+					maxTokens: +this.settings.maxTokens
+				});
 				this.chatExecutor = new ChatExecutor(openaiModel);
 				break;
-			case 'antrhopicKey':
+			}
+			case 'antrhopicKey': {
+				const claudeModel = new ClaudeModel({
+					modelName: selectedModel,
+					apiKey,
+					maxTokens: +this.settings.maxTokens
+				})
+
 				this.chatExecutor = new ChatExecutor(claudeModel);
+				break;
+			}
+			case 'openRouterKey': {
+				const openRouterModel = new OpenRouterModel({
+					modelName: selectedModel,
+					apiKey,
+					maxTokens: +this.settings.maxTokens
+				})
+
+				this.chatExecutor = new ChatExecutor(openRouterModel);
+				break;
+			}
 		}
 	}
 
@@ -156,7 +171,6 @@ export default class SelectAndCompletePlugin extends Plugin {
 
 	async saveSettings() {
 		await this.saveData(this.settings);
-		console.log("LLM")
 		this.setupLLM()
 	}
 }

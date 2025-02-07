@@ -46,6 +46,17 @@ export class MySettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				}))
 
+		new Setting(containerEl)
+			.setName('OpenRouter API Key')
+			.setDesc('Input your OpenRouter API key here.')
+			.addText(text => text
+				.setPlaceholder('Enter your secret')
+				.setValue(this.plugin.settings.openRouterKey)
+				.onChange(async (value) => {
+					this.plugin.settings.openRouterKey = value;
+					await this.plugin.saveSettings();
+				}))
+
 		new Setting(containerEl).setName("Model").setDesc("Choose the model you want to use").setHeading();
 
 		new Setting(containerEl)
