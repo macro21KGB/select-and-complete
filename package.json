@@ -1,6 +1,6 @@
 {
 	"name": "select-and-complete-plugin",
-	"version": "2.4.3",
+	"version": "3.0.0",
 	"description": "A plugin for Obsidian that allows you to select a phrase and complete it with AI",
 	"main": "main.js",
 	"scripts": {
