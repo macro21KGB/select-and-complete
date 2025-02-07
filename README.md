@@ -7,8 +7,9 @@ This plugin for Obsidian enables users to leverage OpenAI's powerful language mo
 - **Text Completion**: Select any portion of text within the Obsidian editor and generate completions using OpenAI models.
 - **Customizable Settings**: Configure the plugin to use different OpenAI models and control other parameters for a tailored experience.
 - **Seamless Integration**: Intuitively integrated into the Obsidian workflow, allowing users to enhance their writing and brainstorming processes effortlessly.
-- **GPTs and Claude models supported (NEW)**: The plugin supports both GPT-3 and Claude models for generating completions based on the selected text.
-- **Quick custom prompts aks "Fillers (NEW)"**: The plugin allows users to quickly generate completions based on custom prompts, also known as "fillers."
+- **GPTs and Claude models supported**: The plugin supports both GPT-3 and Claude models for generating completions based on the selected text.
+- **OpenRouter models supported (NEW)**: The plugin supports the various models on [OpenRouter](https://openrouter.ai)
+- **Quick custom prompts aka "Fillers"**: The plugin allows users to quickly generate completions based on custom prompts, also known as "fillers."
 
 
 ## Installation
