@@ -30,7 +30,7 @@ export const getKeyNameBasedOnModel = (model: string) => {
 
 	if (modelName.startsWith("claude")) return "antrhopicKey";
 
-	return "openRouterKey"
+	return "openaiKey"
 }
 
 

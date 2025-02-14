@@ -12,12 +12,16 @@ export class OpenAIModel extends ChatInterface {
 			},
 			body: JSON.stringify({
 				model: this.modelName,
-				max_completion_tokens: +this.maxTokens,
 				temperature: 0.5,
 				messages: [
 					{
 						role: "user",
-						content: prompt
+						content: [
+							{
+								type: "text",
+								text: prompt
+							}
+						]
 					}
 				]
 			}),
