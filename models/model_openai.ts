@@ -23,7 +23,7 @@ export class OpenAIModel extends ChatInterface {
 		};
 
 		if (this.modelName.includes("gpt")) {
-			requestBody.max_completition_tokens = +this.maxTokens;
+			requestBody.max_completion_tokens = +this.maxTokens;
 			requestBody.temperature = 0.5
 		}
 
